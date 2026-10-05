@@ -1,0 +1,29 @@
+{
+  "name": "课程表与学习计划",
+  "short_name": "学习计划",
+  "description": "课程安排、日程视图与本地学习提醒",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f3f1",
+  "theme_color": "#18232b",
+  "icons": [
+    {
+      "src": "/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
