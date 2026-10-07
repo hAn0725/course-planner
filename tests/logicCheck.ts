@@ -2,6 +2,7 @@ import { Course } from '../src/types';
 import { DEFAULT_ACADEMIC_CALENDAR, getMeetingsForDate, getMeetingsForWeekAndDay, getWeekInfoForDate, isCourseActiveInWeek } from '../src/data/academicCalendar';
 import { findScheduleConflicts } from '../src/utils/dateUtils';
 import { shouldTriggerAssignmentReminder, toggleReminder } from '../src/utils/reminderUtils';
+import { STORAGE_KEYS, readStoredValue } from '../src/utils/storage';
 
 const exampleCourse: Course = {
   id: 'example-course',
@@ -78,5 +79,13 @@ check('Completing a daily reminder schedules the next day', daily.dueDate === '2
 const weekday = toggleReminder({ ...reminderBase, dueDate: '2026-09-11', repeat: 'weekdays' }, date('2026-09-11'));
 check('Weekday reminders skip the weekend', weekday.dueDate === '2026-09-14');
 
+const stored = new Map<string, string>([['univ_course_schedule_courses_demo_v5', '[{"id":"demo"}]']]);
+const storage: Storage = { get length() { return stored.size; }, key: (i: number) => [...stored.keys()][i] ?? null, getItem: (key: string) => stored.get(key) ?? null, setItem: (key: string, value: string) => { stored.set(key, value); }, removeItem: (key: string) => { stored.delete(key); }, clear: () => stored.clear() };
+check('Generic browser keys retain earlier courses and backup', readStoredValue(storage, STORAGE_KEYS.COURSES) === '[{"id":"demo"}]' && stored.has('univ_course_schedule_courses_demo_v5'));
+storage.setItem(STORAGE_KEYS.COURSES, '[]');
+check('Existing generic storage takes priority over legacy backup', readStoredValue(storage, STORAGE_KEYS.COURSES) === '[]');
+stored.set('univ_course_schedule_settings_demo_v5', '{"startHour":8}');
+stored.set('univ_course_schedule_settings_other_v5', '{"startHour":9}');
+check('Ambiguous old browser stores are not silently mixed', readStoredValue(storage, STORAGE_KEYS.SETTINGS) === null);
 console.log(`\n结果: ${pass} 通过, ${fail} 失败`);
 process.exit(fail > 0 ? 1 : 0);

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { lazy, Suspense, useState, useEffect, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Course, 
   AssignmentReminder, 
@@ -24,6 +24,8 @@ import { WeekGrid } from './components/WeekGrid';
 import { DayAgendaView } from './components/DayAgendaView';
 import { toggleReminder } from './utils/reminderUtils';
 import { useReminderEngine } from './hooks/useReminderEngine';
+import { STORAGE_KEYS, readStoredValue } from './utils/storage';
+import type { Snapshot } from './ai/protocol';
 
 import { 
   BookOpen, 
@@ -41,14 +43,8 @@ const RemindersPanel = lazy(() => import('./components/RemindersDrawer').then(mo
 const CourseDetailModal = lazy(() => import('./components/CourseDetailModal').then(module => ({ default: module.CourseDetailModal })));
 const CourseFormModal = lazy(() => import('./components/CourseFormModal').then(module => ({ default: module.CourseFormModal })));
 const ConflictAlertModal = lazy(() => import('./components/ConflictAlertModal').then(module => ({ default: module.ConflictAlertModal })));
-
-const STORAGE_KEYS = {
-  COURSES: 'univ_course_schedule_courses_whut_v5',
-  ASSIGNMENTS: 'univ_course_schedule_assignments_whut_v5',
-  SETTINGS: 'univ_course_schedule_settings_whut_v5',
-  NOTIFICATIONS: 'univ_course_schedule_notifications_whut_v5',
-  TERMS: 'univ_course_schedule_terms_whut_v5',
-};
+const AssistantPage = lazy(() => import('./components/AssistantPage').then(module => ({ default: module.AssistantPage })));
+const UsagePage = lazy(() => import('./components/UsagePage').then(module => ({ default: module.UsagePage })));
 
 const currentYear = new Date().getFullYear();
 const DEFAULT_TERMS = [`${currentYear}-${currentYear + 1}-1 (${currentYear}秋季学期)`, `${currentYear}-${currentYear + 1}-2 (${currentYear + 1}春季学期)`, `Fall ${currentYear}`, `Spring ${currentYear + 1}`];
@@ -59,7 +55,7 @@ export default function App() {
   // 1. Core State
   const [terms] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.TERMS);
+      const saved = readStoredValue(localStorage, STORAGE_KEYS.TERMS);
       return saved ? JSON.parse(saved) : DEFAULT_TERMS;
     } catch {
       return DEFAULT_TERMS;
@@ -72,7 +68,7 @@ export default function App() {
 
   const [courses, setCourses] = useState<Course[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.COURSES);
+      const saved = readStoredValue(localStorage, STORAGE_KEYS.COURSES);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
@@ -85,7 +81,7 @@ export default function App() {
 
   const [assignments, setAssignments] = useState<AssignmentReminder[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.ASSIGNMENTS);
+      const saved = readStoredValue(localStorage, STORAGE_KEYS.ASSIGNMENTS);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
@@ -98,7 +94,7 @@ export default function App() {
 
   const [notificationsLog, setNotificationsLog] = useState<NotificationLog[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+      const saved = readStoredValue(localStorage, STORAGE_KEYS.NOTIFICATIONS);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -117,7 +113,7 @@ export default function App() {
       defaultClassReminderLeadTime: 15,
     };
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      const saved = readStoredValue(localStorage, STORAGE_KEYS.SETTINGS);
       if (saved) return { ...defaults, ...JSON.parse(saved) };
     } catch {}
     return defaults;
@@ -127,7 +123,33 @@ export default function App() {
   const [selectedWeek, setSelectedWeek] = useState<number>(() => {
     return getWeekInfoForDate(new Date())?.weekNumber ?? 1;
   });
-  const [viewMode, setViewMode] = useState<'grid' | 'agenda'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'agenda' | 'ai' | 'usage'>('grid');
+  const [assistantOpened, setAssistantOpened] = useState(false);
+  const dataRef = useRef<Snapshot>({ courses, assignments });
+  dataRef.current = { courses, assignments };
+  const aiBridge = useMemo(() => ({
+    read: () => dataRef.current,
+    write: (next: Snapshot) => {
+      // Report success only after both existing browser stores have accepted the write.
+      const oldCourses = localStorage.getItem(STORAGE_KEYS.COURSES);
+      const oldAssignments = localStorage.getItem(STORAGE_KEYS.ASSIGNMENTS);
+      try {
+        localStorage.setItem(STORAGE_KEYS.COURSES, JSON.stringify(next.courses));
+        localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, JSON.stringify(next.assignments));
+      } catch {
+        if (oldCourses === null) localStorage.removeItem(STORAGE_KEYS.COURSES);
+        else localStorage.setItem(STORAGE_KEYS.COURSES, oldCourses);
+        if (oldAssignments === null) localStorage.removeItem(STORAGE_KEYS.ASSIGNMENTS);
+        else localStorage.setItem(STORAGE_KEYS.ASSIGNMENTS, oldAssignments);
+        throw new Error('storage_failed');
+      }
+      dataRef.current = next;
+      setCourses(next.courses);
+      setAssignments(next.assignments);
+    },
+  }), []);
+  useEffect(() => { if (viewMode === 'ai') setAssistantOpened(true); }, [viewMode]);
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [viewMode]);
   const [applyHolidayAdjustments, setApplyHolidayAdjustments] = useState<boolean>(true);
 
   // Modals state
@@ -329,7 +351,7 @@ export default function App() {
         <header className="workspace-topbar">
           <div>
             <p className="workspace-breadcrumb">学习空间 <span>/</span> 个人规划</p>
-            <h1>课程安排</h1>
+            <h1>{viewMode === 'ai' ? t('ai.title') : viewMode === 'usage' ? t('usage.title') : '课程安排'}</h1>
           </div>
           <div className="workspace-date-block">
             <span className="workspace-date-label">今天</span>
@@ -340,7 +362,7 @@ export default function App() {
         </header>
 
       <main className="planner-layout">
-        <section className="schedule-column" aria-labelledby="schedule-section-title">
+        <section className="schedule-column" hidden={viewMode === 'ai' || viewMode === 'usage'} aria-labelledby="schedule-section-title">
         <div className="schedule-section-heading">
           <div>
             <p className="schedule-section-eyebrow">本学期</p>
@@ -547,6 +569,12 @@ export default function App() {
           </div>
         )}
         </section>
+
+        {assistantOpened && <Suspense fallback={<div className="ai-loading">{t('ai.thinking')}</div>}>
+          <AssistantPage bridge={aiBridge} term={activeTerm} adjust={applyHolidayAdjustments} visible={viewMode === 'ai'} />
+        </Suspense>}
+
+        {viewMode === 'usage' && <Suspense fallback={<div className="ai-loading">{t('usage.pending')}</div>}><UsagePage /></Suspense>}
 
         <aside className="reminders-column" aria-label="提醒事项">
           <Suspense fallback={<div className="reminders-loading">正在载入提醒事项…</div>}>

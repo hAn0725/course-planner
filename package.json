@@ -11,25 +11,27 @@
     "preview": "vite preview",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "lint": "tsc --noEmit",
-    "test": "esbuild tests/logicCheck.ts --bundle --platform=node --format=cjs --outfile=dist/logicCheck.cjs && node dist/logicCheck.cjs"
+    "check:publication": "node scripts/check-publication.mjs",
+    "test": "esbuild tests/logicCheck.ts --bundle --platform=node --format=cjs --outfile=dist/logicCheck.cjs && node dist/logicCheck.cjs && esbuild tests/aiCheck.ts --bundle --platform=node --format=cjs --outfile=dist/aiCheck.cjs && node dist/aiCheck.cjs && esbuild tests/aiServerCheck.ts --bundle --platform=node --format=cjs --packages=external --outfile=dist/aiServerCheck.cjs && node dist/aiServerCheck.cjs && esbuild tests/usageCheck.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/usageCheck.mjs && node dist/usageCheck.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "express": "^4.21.2",
     "lucide-react": "^0.546.0",
+    "playwright-core": "^1.63.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "vite": "^6.2.3",
-    "express": "^4.21.2"
+    "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3",
-    "@types/express": "^4.17.21"
+    "vite": "^6.2.3"
   }
 }

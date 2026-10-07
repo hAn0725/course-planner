@@ -33,6 +33,7 @@ interface CourseFormModalProps {
   defaultDay?: DayOfWeek;
   defaultStartTime?: string;
   activeTerm: string;
+  draftMode?: boolean;
 }
 
 export const CourseFormModal: React.FC<CourseFormModalProps> = ({
@@ -43,6 +44,7 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
   defaultDay,
   defaultStartTime,
   activeTerm,
+  draftMode = false,
 }) => {
   const { t } = useTranslation();
   const dialogRef = useDialogAccessibility<HTMLDivElement>(isOpen, onClose);
@@ -68,9 +70,9 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
       setName(initialCourse.name || '');
       setSection(initialCourse.section || '01班');
       setCrn(initialCourse.crn || '');
-      setWeeks(initialCourse.weeks || '1-16周');
+      setWeeks(draftMode ? (initialCourse.weeks ?? '') : (initialCourse.weeks || '1-16周'));
       setInstructor(initialCourse.instructor || '');
-      setCredits(initialCourse.credits || 3.5);
+      setCredits(draftMode ? (initialCourse.credits ?? 0) : (initialCourse.credits || 3.5));
       setColor(initialCourse.color || PALETTE[0]);
       setTerm(initialCourse.term || activeTerm);
       setSyllabusNotes(initialCourse.syllabusNotes || '');
@@ -143,6 +145,7 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
     if (!name.trim()) return;
 
     const courseToSave: Course = {
+      schedulePending: initialCourse?.schedulePending && !meetings.length,
       scheduleVerified: initialCourse?.scheduleVerified,
       scheduleRevision: initialCourse?.scheduleRevision,
       id: initialCourse ? initialCourse.id : 'course_' + Math.random().toString(36).substring(2, 9),
@@ -150,9 +153,9 @@ export const CourseFormModal: React.FC<CourseFormModalProps> = ({
       name: name.trim(),
       section: section.trim() || '01班',
       crn: crn.trim() || undefined,
-      weeks: weeks.trim() || '1-16周',
+      weeks: draftMode ? weeks.trim() : (weeks.trim() || '1-16周'),
       instructor: instructor.trim() || undefined,
-      credits: Number(credits) || 3.5,
+      credits: draftMode ? Number(credits) || 0 : Number(credits) || 3.5,
       color,
       term,
       syllabusNotes: syllabusNotes.trim() || undefined,

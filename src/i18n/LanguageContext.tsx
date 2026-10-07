@@ -13,6 +13,8 @@ import { it } from './translations/it';
 import { ar } from './translations/ar';
 import { hi } from './translations/hi';
 import { ru } from './translations/ru';
+import { aiLabel } from './ai';
+import { usageLabel } from './usage';
 
 export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
   { code: 'en', name: 'English', englishName: 'English', flag: '🇺🇸', dir: 'ltr' },
@@ -118,6 +120,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const t = useMemo(() => {
     return (keyPath: string, params?: Record<string, string | number>): string => {
+      if (keyPath.startsWith('ai.')) return aiLabel(language, keyPath.slice(3));
+      if (keyPath.startsWith('usage.')) return usageLabel(language, keyPath.slice(6));
       const keys = keyPath.split('.');
       
       // Look up in active translations
@@ -153,7 +157,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       return text;
     };
-  }, [currentTranslations]);
+  }, [currentTranslations, language]);
 
   return (
     <LanguageContext.Provider

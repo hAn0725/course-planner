@@ -2,9 +2,11 @@ import express from 'express';
 import path from 'path';
 import { exec } from 'child_process';
 import { createServer as createViteServer } from 'vite';
+import { aiRouter } from './src/ai/server';
+import { usageRouter, usageService } from './src/usage/server';
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.SCHEDULE_PORT) || 3000;
 
 /* ============================================================
  * 网页关闭自动停止（心跳看门狗）
@@ -36,10 +38,16 @@ function openBrowser() {
 function shutdown(reason: string) {
   console.log(`\n${reason}`);
   console.log('课程表已停止，本窗口将自动关闭。');
-  setTimeout(() => process.exit(0), 1500);
+  void usageService.close().finally(() => process.exit(0));
+  setTimeout(() => process.exit(0), 30_000).unref();
 }
 
+process.once('SIGINT', () => shutdown('正在关闭课程表。'));
+process.once('SIGTERM', () => shutdown('正在关闭课程表。'));
+
 app.use(express.json({ limit: '10mb' }));
+app.use('/api/ai', aiRouter);
+app.use('/api/usage', usageRouter);
 
 // 页面心跳：网页每 4 秒调用一次
 app.post('/api/heartbeat', (_req, res) => {

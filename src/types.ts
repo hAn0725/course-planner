@@ -14,6 +14,8 @@ export interface MeetingSession {
 }
 
 export interface Course {
+  /** Explicitly stated pending schedule; distinct from unreadable import fields. */
+  schedulePending?: boolean;
   scheduleVerified?: boolean;
   scheduleRevision?: number;
   id: string;
@@ -39,6 +41,8 @@ export type AssignmentType = 'assignment' | 'midterm' | 'final' | 'quiz' | 'proj
 export type PriorityLevel = 'urgent' | 'medium' | 'low';
 
 export interface AssignmentReminder {
+  /** Duration of an AI-planned study block, used when finding subsequent free slots. */
+  durationMinutes?: number;
   id: string;
   /** Optional: personal events and other tasks do not need to be tied to a course. */
   courseId?: string;

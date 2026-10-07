@@ -8,6 +8,8 @@ import {
   Plus,
   Upload,
   X,
+  MessageSquare,
+  ChartNoAxesCombined,
 } from 'lucide-react';
 import { Course, ScheduleConflict } from '../types';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -18,8 +20,8 @@ import { TermSelector } from './TermSelector';
 interface HeaderProps {
   courses: Course[];
   conflicts: ScheduleConflict[];
-  viewMode: 'grid' | 'agenda';
-  setViewMode: (mode: 'grid' | 'agenda') => void;
+  viewMode: 'grid' | 'agenda' | 'ai' | 'usage';
+  setViewMode: (mode: 'grid' | 'agenda' | 'ai' | 'usage') => void;
   activeTerm: string;
   setActiveTerm: (term: string) => void;
   terms: string[];
@@ -97,6 +99,12 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <List size={17} />
             <span>每日安排</span>
+          </button>
+          <button type="button" className={`sidebar-nav-item ${viewMode === 'ai' ? 'is-active' : ''}`} aria-pressed={viewMode === 'ai'} onClick={() => runFromMobileMenu(() => setViewMode('ai'))}>
+            <MessageSquare size={17} /><span>{t('ai.title')}</span>
+          </button>
+          <button type="button" className={`sidebar-nav-item ${viewMode === 'usage' ? 'is-active' : ''}`} aria-pressed={viewMode === 'usage'} onClick={() => runFromMobileMenu(() => setViewMode('usage'))}>
+            <ChartNoAxesCombined size={17} /><span>{t('usage.title')}</span>
           </button>
         </nav>
 
